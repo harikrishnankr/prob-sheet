@@ -1,50 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { Badge, Button, Field, Input, RecommendationBadge, Section, Select } from "@/components/ui";
-import { evaluate, formatPoints, type Ratings } from "@/lib/algorithm";
-import { getAreasByCategory, probeConfig, type Score } from "@/lib/config";
+import { Badge, Field, Input, RecommendationBadge, Section, Select } from "@/components/ui";
+import { evaluate, formatGap, formatPoints } from "@/lib/algorithm";
+import { getAreasByCategory, probeConfig } from "@/lib/config";
+import { FinishInterviewButton } from "./finish-interview-button";
 import { ProbeAreaTable } from "./probe-area-table";
 import { EligibilityTable, ResultStats } from "./result-summary";
+import { useProbeSheet } from "./use-probe-sheet";
 
 const coreAreas = getAreasByCategory("core");
 const bonusAreas = getAreasByCategory("good-to-know");
 const { roles } = probeConfig;
 
-interface Candidate {
-  name: string;
-  experience: string;
-  appliedRoleId: string;
-}
-
-const emptyCandidate: Candidate = { name: "", experience: "", appliedRoleId: "" };
+const savedTimeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 export function ProbeSheet() {
-  const [candidate, setCandidate] = useState<Candidate>(emptyCandidate);
-  const [ratings, setRatings] = useState<Ratings>({});
-  const [notes, setNotes] = useState<Record<string, string>>({});
+  const { candidate, ratings, notes, restoredAt, isEmpty, updateCandidate, rate, note, finish } = useProbeSheet();
 
   const appliedRole = roles.find((r) => r.id === candidate.appliedRoleId);
   const experienceYears = candidate.experience === "" ? undefined : Number(candidate.experience);
   const evaluation = evaluate(ratings, candidate.appliedRoleId);
   const ratedCoreCount = coreAreas.filter((a) => ratings[a.id] !== undefined).length;
-  const isDirty = candidate !== emptyCandidate || Object.keys(ratings).length > 0 || Object.keys(notes).length > 0;
-
-  const updateCandidate = (patch: Partial<Candidate>) => setCandidate((c) => ({ ...c, ...patch }));
-  const rate = (areaId: string, score: Score | undefined) =>
-    setRatings((current) => {
-      const next = { ...current };
-      if (score === undefined) delete next[areaId];
-      else next[areaId] = score;
-      return next;
-    });
-  const note = (areaId: string, text: string) => setNotes((n) => ({ ...n, [areaId]: text }));
-
-  function reset() {
-    setCandidate(emptyCandidate);
-    setRatings({});
-    setNotes({});
-  }
 
   const tableProps = { ratings, notes, appliedRole, onRate: rate, onNote: note };
 
@@ -52,10 +28,9 @@ export function ProbeSheet() {
     <>
       <Section
         title="Candidate"
-        actions={
-          <Button variant="ghost" onClick={reset} disabled={!isDirty}>
-            Reset sheet
-          </Button>
+        description={
+          (restoredAt ? `Restored unfinished interview from ${savedTimeFormat.format(new Date(restoredAt))}. ` : "") +
+          "Saved automatically in this browser until you finish the interview."
         }
       >
         <div className="grid gap-4 sm:grid-cols-3">
@@ -131,25 +106,26 @@ export function ProbeSheet() {
       </Section>
 
       {/* Always-visible summary while scrolling through the areas. */}
-      <div
-        aria-live="polite"
-        className="sticky bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-surface/90 px-5 py-3 text-sm shadow-lg backdrop-blur"
-      >
-        <span>
-          Final <strong className="tabular-nums">{formatPoints(evaluation.finalScore)}</strong>
-        </span>
-        <span>
-          Eligible <strong>{evaluation.eligibleRole?.name ?? "None"}</strong>
-        </span>
-        <span>
-          Gap <strong className="tabular-nums">{appliedRole && evaluation.gap !== null ? evaluation.gap : "—"}</strong>
-        </span>
-        <span className="text-muted">
-          Core rated {ratedCoreCount}/{coreAreas.length}
-        </span>
-        <span className="ml-auto">
+      <div className="sticky bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-border bg-surface/90 px-5 py-3 text-sm shadow-lg backdrop-blur">
+        <div aria-live="polite" className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-2">
+          <span>
+            Final <strong className="tabular-nums">{formatPoints(evaluation.finalScore)}</strong>
+          </span>
+          <span>
+            Eligible <strong>{evaluation.eligibleRole?.name ?? "None"}</strong>
+          </span>
+          <span>
+            Gap{" "}
+            <strong className="tabular-nums">
+              {appliedRole && evaluation.gap !== null ? formatGap(evaluation.gap) : "—"}
+            </strong>
+          </span>
+          <span className="text-muted">
+            Core rated {ratedCoreCount}/{coreAreas.length}
+          </span>
           {appliedRole ? <RecommendationBadge recommendation={evaluation.recommendation} /> : <Badge>Select a role</Badge>}
-        </span>
+        </div>
+        <FinishInterviewButton onFinish={finish} disabled={isEmpty} />
       </div>
     </>
   );

@@ -1,12 +1,13 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "bg-accent text-white hover:opacity-90 dark:text-background",
   secondary: "border border-border bg-surface text-foreground hover:bg-foreground/5",
   ghost: "text-muted hover:bg-foreground/5 hover:text-foreground",
+  danger: "bg-rose-600 text-white hover:bg-rose-700",
 };
 
 /** Button styles, for elements that should look like a button (e.g. links). */
