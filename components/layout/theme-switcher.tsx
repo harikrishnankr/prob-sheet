@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui";
 import {
   applyTheme,
+  DEFAULT_THEME,
   readThemePreference,
   storeThemePreference,
   watchSystemTheme,
@@ -55,10 +56,10 @@ const options: SegmentedOption<ThemePreference>[] = [
 ];
 
 export function ThemeSwitcher() {
-  // Server render has no access to storage, so start at "system" and sync after mount.
+  // Server render has no access to storage, so start at the default and sync after mount.
   // The page colours are already correct via the inline script in <head>; only the
   // selected segment updates here.
-  const [preference, setPreference] = useState<ThemePreference>("system");
+  const [preference, setPreference] = useState<ThemePreference>(DEFAULT_THEME);
 
   useLayoutEffect(() => {
     const stored = readThemePreference();

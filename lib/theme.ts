@@ -2,6 +2,8 @@ export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "theme";
+/** Used until the user picks a theme. */
+export const DEFAULT_THEME: ThemePreference = "light";
 export const THEME_PREFERENCES: ThemePreference[] = ["light", "system", "dark"];
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -13,9 +15,9 @@ export function isThemePreference(value: unknown): value is ThemePreference {
 export function readThemePreference(): ThemePreference {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return isThemePreference(stored) ? stored : "system";
+    return isThemePreference(stored) ? stored : DEFAULT_THEME;
   } catch {
-    return "system";
+    return DEFAULT_THEME;
   }
 }
 
@@ -49,4 +51,4 @@ export function watchSystemTheme(onChange: () => void) {
  * Runs in <head> before first paint so the stored theme applies without a flash.
  * Must stay self-contained — it can't import anything.
  */
-export const themeInitScript = `(function(){try{var p=localStorage.getItem("${THEME_STORAGE_KEY}");var d=p==="dark"||(p!=="light"&&window.matchMedia("${DARK_QUERY}").matches);var t=d?"dark":"light";document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t}catch(e){}})()`;
+export const themeInitScript = `(function(){try{var p=localStorage.getItem("${THEME_STORAGE_KEY}")||"${DEFAULT_THEME}";var d=p==="dark"||(p==="system"&&window.matchMedia("${DARK_QUERY}").matches);var t=d?"dark":"light";document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t}catch(e){}})()`;
